@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hypersplenism Classifier</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            margin: 0;
+        }
+        
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        @media (min-width: 992px) {
+            .main-container {
+                flex-direction: row;
+            }
+            
+            .input-section {
+                flex: 1;
+            }
+            
+            .results-section {
+                flex: 1;
+            }
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            height: 100%;
+        }
+        
+        .card h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        select, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        button {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #1a252f;
+        }
+        
+        .result-card {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .result {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .result strong {
+            color: #2c3e50;
+        }
+        
+        .progress-container {
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: #3498db;
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.5s;
+        }
+        
+        .risk-low {
+            background-color: #2ecc71;
+        }
+        
+        .risk-medium {
+            background-color: #f39c12;
+        }
+        
+        .risk-high {
+            background-color: #e74c3c;
+        }
+        
+        .feature-importance {
+            margin-top: 30px;
+        }
+        
+        .feature-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .feature-name {
+            width: 250px;
+            font-size: 14px;
+        }
+        
+        .feature-value {
+            width: 40px;
+            font-size: 14px;
+            text-align: right;
+        }
+        
+        .feature-bar-container {
+            flex: 1;
+            height: 12px;
+            background-color: #e0e0e0;
+            margin: 0 10px;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .feature-bar-fill {
+            height: 100%;
+            background-color: #3498db;
+            border-radius: 6px;
+            width: 0%;
+            transition: width 0.5s;
+        }
+        
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .info-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #eef4fb;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .accordion {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .accordion-header {
+            background-color: #f5f5f5;
+            padding: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .accordion-content {
+            padding: 15px;
+            display: none;
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Hypersplenism Risk Assessment Tool</h1>
+        <p>Clinical decision support system for hypersplenism risk evaluation</p>
+    </header>
+    
+    <div class="main-container">
+        <div class="input-section">
+            <div class="card">
+                <h2>Patient Information</h2>
+                
+                <form id="patient-form">
+                    <!-- Demographics -->
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <select id="gender">
+                            <option value="0">Female</option>
+                            <option value="1">Male</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Ethnicity</label>
+                        <select id="ethnicity">
+                            <option value="caucasian">Caucasian</option>
+                            <option value="asian">Asian</option>
+                            <option value="hispanic">Hispanic</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Lifestyle -->
+                    <div class="form-group">
+                        <label>Smoking Status</label>
+                        <select id="smoking">
+                            <option value="non">Non-Smoker</option>
+                            <option value="former">Former Smoker</option>
+                            <option value="current">Current Smoker</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Alcohol Use</label>
+                        <select id="alcohol">
+                            <option value="none">None</option>
+                            <option value="occasional">Occasional</option>
+                            <option value="regular">Regular</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Medical Conditions -->
+                    <div class="form-group">
+                        <label>Liver Disease</label>
+                        <select id="liver-disease">
+                            <option value="none">None</option>
+                            <option value="fatty">Fatty Liver</option>
+                            <option value="hepatitis">Hepatitis</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Blood Disorder</label>
+                        <select id="blood-disorder">
+                            <option value="none">None</option>
+                            <option value="leukemia">Leukemia</option>
+                            <option value="lymphoma">Lymphoma</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Infections</label>
+                        <select id="infections">
+                            <option value="none">None</option>
+                            <option value="malaria">Malaria</option>
+                            <option value="tuberculosis">Tuberculosis</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Autoimmune Disease</label>
+                        <select id="autoimmune">
+                            <option value="none">None</option>
+                            <option value="rheumatoid">Rheumatoid Arthritis</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Cancer History</label>
+                        <select id="cancer">
+                            <option value="none">None</option>
+                            <option value="liver">Liver Cancer</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Lab Results -->
+                    <div class="form-group">
+                        <label>Hemoglobin Level</label>
+                        <select id="hemoglobin">
+                            <option value="normal">Normal</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Platelet Count</label>
+                        <select id="platelets">
+                            <option value="normal">Normal</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>White Blood Cell Count</label>
+                        <select id="wbc">
+                            <option value="normal">Normal</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Liver Function</label>
+                        <select id="liver-function">
+                            <option value="normal">Normal</option>
+                            <option value="abnormal">Abnormal</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Spleen Status -->
+                    <div class="form-group">
+                        <label>Spleen Size</label>
+                        <select id="spleen">
+                            <option value="normal">Normal</option>
+                            <option value="severe">Severe Enlargement</option>
+                        </select>
+                    </div>
+                    
+                    <button type="button" id="analyze-btn">Analyze Risk</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="results-section">
+            <div class="card">
+                <h2>Assessment Results</h2>
+                <p>Fill in the patient information and click "Analyze Risk" to see the results.</p>
+                
+                <div id="results" class="result-card">
+                    <div class="result">
+                        <strong>Prediction:</strong> <span id="prediction"></span>
+                    </div>
+                    
+                    <div class="result">
+                        <strong>Probability:</strong> <span id="probability"></span>
+                    </div>
+                    
+                    <div class="result">
+                        <strong>Risk Level:</strong> <span id="risk-level"></span>
+                    </div>
+                    
+                    <div class="progress-container">
+                        <div id="risk-bar" class="progress-bar"></div>
+                    </div>
+                    
+                    <div class="info-section">
+                        <p><strong>Clinical Interpretation:</strong></p>
+                        <p id="clinical-interpretation"></p>
+                    </div>
+                    
+                    <div class="feature-importance">
+                        <h3>Key Factors Influencing Risk</h3>
+                        <div id="features-container"></div>
+                    </div>
+                </div>
+                
+                <div class="accordion">
+                    <div class="accordion-header">About Hypersplenism</div>
+                    <div class="accordion-content">
+                        <p>Hypersplenism is a condition characterized by an overactive spleen and peripheral blood cytopenia (reduction in the number of one or more types of blood cells). This condition is often associated with splenomegaly (enlarged spleen) and can result from various underlying disorders.</p>
+                        
+                        <p>Common causes include:</p>
+                        <ul>
+                            <li>Liver diseases (cirrhosis, hepatitis)</li>
+                            <li>Blood disorders (leukemia, lymphoma)</li>
+                            <li>Infections (malaria, tuberculosis)</li>
+                            <li>Portal hypertension</li>
+                            <li>Autoimmune disorders</li>
+                        </ul>
+                        
+                        <p>Clinical features often include:</p>
+                        <ul>
+                            <li>Anemia</li>
+                            <li>Leukopenia (low white blood cell count)</li>
+                            <li>Thrombocytopenia (low platelet count)</li>
+                            <li>Abdominal discomfort</li>
+                            <li>Risk of bleeding and infections</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Hypersplenism Risk Assessment Tool &copy; 2025. For clinical decision support only. This tool should be used in conjunction with professional medical judgment.</p>
+        <p>Not for diagnostic purposes. Consult a healthcare provider for proper diagnosis and treatment.</p>
+    </footer>
+
+    <script>
+        // Sample feature importance (would be dynamically generated from model in a real implementation)
+        const featureImportance = {
+            "Spleen_Size_Severe_Enlargement": 0.36,
+            "Blood_Disorder_Leukemia": 0.22,
+            "Liver_Disease_Hepatitis": 0.18,
+            "Infections_Malaria": 0.12,
+            "Platelet_Count_Low": 0.09,
+            "WBC_Count_Low": 0.08,
+            "Hemoglobin_Level_Low": 0.07,
+            "Liver_Function_Normal": 0.05,
+            "Cancer_History_Liver_Cancer": 0.04,
+            "Autoimmune_Disease_Rheumatoid_Arthritis": 0.03
+        };
+        
+        // Mock prediction function (would be replaced with actual model API call)
+        function predictHypersplenism(patientData) {
+            // This is a simplified algorithm based on known risk factors
+            let score = 0;
+            
+            // Major risk factors
+            if (patientData.Spleen_Size_Severe_Enlargement === 1) score += 40;
+            if (patientData.Liver_Disease_Hepatitis === 1) score += 20;
+            if (patientData.Blood_Disorder_Leukemia === 1) score += 25;
+            if (patientData.Infections_Malaria === 1) score += 15;
+            
+            // Additional risk factors
+            if (patientData.Platelet_Count_Low === 1) score += 10;
+            if (patientData.WBC_Count_Low === 1) score += 10;
+            if (patientData.Hemoglobin_Level_Low === 1) score += 8;
+            if (patientData.Liver_Function_Normal === 0) score += 5;
+            
+            const probability = Math.min(score / 100, 0.99);
+            
+            return {
+                prediction: probability > 0.5 ? 1 : 0,
+                probability: probability,
+                riskLevel: probability > 0.7 ? 'High' : probability > 0.3 ? 'Medium' : 'Low'
+            };
+        }
+        
+        // Transform form data to model input format
+        function getPatientData() {
+            // Initialize all fields to 0
+            const patientData = {};
+            for (const feature of Object.keys(featureImportance)) {
+                patientData[feature] = 0;
+            }
+            
+            // Set demographics
+            patientData.Gender_Male = document.getElementById('gender').value === '1' ? 1 : 0;
+            
+            const ethnicity = document.getElementById('ethnicity').value;
+            patientData.Ethnicity_Asian = ethnicity === 'asian' ? 1 : 0;
+            patientData.Ethnicity_Caucasian = ethnicity === 'caucasian' ? 1 : 0;
+            patientData.Ethnicity_Hispanic = ethnicity === 'hispanic' ? 1 : 0;
+            patientData.Ethnicity_Other = ethnicity === 'other' ? 1 : 0;
+            
+            // Set lifestyle
+            const smoking = document.getElementById('smoking').value;
+            patientData.Smoking_Status_Former_Smoker = smoking === 'former' ? 1 : 0;
+            patientData.Smoking_Status_Non_Smoker = smoking === 'non' ? 1 : 0;
+            
+            const alcohol = document.getElementById('alcohol').value;
+            patientData.Alcohol_Use_Occasional = alcohol === 'occasional' ? 1 : 0;
+            patientData.Alcohol_Use_Regular = alcohol === 'regular' ? 1 : 0;
+            
+            // Set medical conditions
+            const liverDisease = document.getElementById('liver-disease').value;
+            patientData.Liver_Disease_Fatty_Liver = liverDisease === 'fatty' ? 1 : 0;
+            patientData.Liver_Disease_Hepatitis = liverDisease === 'hepatitis' ? 1 : 0;
+            patientData.Liver_Disease_No_Liver_Disease = liverDisease === 'none' ? 1 : 0;
+            
+            const bloodDisorder = document.getElementById('blood-disorder').value;
+            patientData.Blood_Disorder_Leukemia = bloodDisorder === 'leukemia' ? 1 : 0;
+            patientData.Blood_Disorder_Lymphoma = bloodDisorder === 'lymphoma' ? 1 : 0;
+            patientData.Blood_Disorder_No_Blood_Disorder = bloodDisorder === 'none' ? 1 : 0;
+            
+            const infections = document.getElementById('infections').value;
+            patientData.Infections_Malaria = infections === 'malaria' ? 1 : 0;
+            patientData.Infections_Tuberculosis = infections === 'tuberculosis' ? 1 : 0;
+            patientData.Infections_No_Infection = infections === 'none' ? 1 : 0;
+            
+            const autoimmune = document.getElementById('autoimmune').value;
+            patientData.Autoimmune_Disease_Rheumatoid_Arthritis = autoimmune === 'rheumatoid' ? 1 : 0;
+            patientData.Autoimmune_Disease_No_Autoimmune = autoimmune === 'none' ? 1 : 0;
+            
+            const cancer = document.getElementById('cancer').value;
+            patientData.Cancer_History_Liver_Cancer = cancer === 'liver' ? 1 : 0;
+            patientData.Cancer_History_No_Cancer = cancer === 'none' ? 1 : 0;
+            
+            // Set lab results
+            const hemoglobin = document.getElementById('hemoglobin').value;
+            patientData.Hemoglobin_Level_Low = hemoglobin === 'low' ? 1 : 0;
+            patientData.Hemoglobin_Level_Normal = hemoglobin === 'normal' ? 1 : 0;
+            
+            const platelets = document.getElementById('platelets').value;
+            patientData.Platelet_Count_Low = platelets === 'low' ? 1 : 0;
+            patientData.Platelet_Count_Normal = platelets === 'normal' ? 1 : 0;
+            
+            const wbc = document.getElementById('wbc').value;
+            patientData.WBC_Count_Low = wbc === 'low' ? 1 : 0;
+            patientData.WBC_Count_Normal = wbc === 'normal' ? 1 : 0;
+            
+            const liverFunction = document.getElementById('liver-function').value;
+            patientData.Liver_Function_Normal = liverFunction === 'normal' ? 1 : 0;
+            
+            // Set spleen status
+            const spleen = document.getElementById('spleen').value;
+            patientData.Spleen_Size_Normal = spleen === 'normal' ? 1 : 0;
+            patientData.Spleen_Size_Severe_Enlargement = spleen === 'severe' ? 1 : 0;
+            
+            return patientData;
+        }
+        
+        // Display results
+        function showResults(results) {
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('prediction').textContent = results.prediction === 1 ? 'Hypersplenism Likely' : 'Hypersplenism Unlikely';
+            document.getElementById('probability').textContent = `${Math.round(results.probability * 100)}%`;
+            document.getElementById('risk-level').textContent = results.riskLevel;
+            
+            const riskBar = document.getElementById('risk-bar');
+            riskBar.style.width = `${results.probability * 100}%`;
+            riskBar.className = 'progress-bar';
+            riskBar.classList.add(`risk-${results.riskLevel.toLowerCase()}`);
+            
+            // Set clinical interpretation
+            const interpretation = document.getElementById('clinical-interpretation');
+            if (results.riskLevel === 'High') {
+                interpretation.textContent = 'Patient exhibits multiple strong risk factors for hypersplenism. Comprehensive hematological workup and spleen evaluation is recommended. Consider referral to hematology.';
+            } else if (results.riskLevel === 'Medium') {
+                interpretation.textContent = 'Patient shows some risk factors for hypersplenism. Consider closer monitoring of blood counts and spleen size. Follow-up evaluation in 3-6 months may be appropriate.';
+            } else {
+                interpretation.textContent = 'Patient has few risk factors for hypersplenism. Routine monitoring is advised if any underlying conditions are present.';
+            }
+            
+            // Display feature importance
+            const featuresContainer = document.getElementById('features-container');
+            featuresContainer.innerHTML = '';
+            
+            const patientData = getPatientData();
+            const sortedFeatures = Object.entries(featureImportance)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+            
+            sortedFeatures.forEach(([feature, importance]) => {
+                const featureValue = patientData[feature];
+                const formattedFeature = feature.replace(/_/g, ' ');
+                
+                const featureBar = document.createElement('div');
+                featureBar.className = 'feature-bar';
+                
+                const nameElement = document.createElement('div');
+                nameElement.className = 'feature-name';
+                nameElement.textContent = formattedFeature;
+                
+                const barContainer = document.createElement('div');
+                barContainer.className = 'feature-bar-container';
+                
+                const barFill = document.createElement('div');
+                barFill.className = 'feature-bar-fill';
+                barFill.style.width = `${importance * 100}%`;
+                
+                const valueElement = document.createElement('div');
+                valueElement.className = 'feature-value';
+                valueElement.textContent = featureValue === 1 ? 'Yes' : 'No';
+                
+                barContainer.appendChild(barFill);
+                featureBar.appendChild(nameElement);
+                featureBar.appendChild(barContainer);
+                featureBar.appendChild(valueElement);
+                featuresContainer.appendChild(featureBar);
+            });
+        }
+        
+        // Setup event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Analyze button
+            document.getElementById('analyze-btn').addEventListener('click', function() {
+                const patientData = getPatientData();
+                const results = predictHypersplenism(patientData);
+                showResults(results);
+            });
+            
+            // Accordion functionality
+            const accordionHeaders = document.querySelectorAll('.accordion-header');
+            accordionHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    const content = this.nextElementSibling;
+                    if (content.style.display === 'block') {
+                        content.style.display = 'none';
+                    } else {
+                        content.style.display = 'block';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
